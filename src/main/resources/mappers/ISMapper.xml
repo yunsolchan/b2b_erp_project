@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        
+<mapper namespace="com.spring.team_one.dao.AttDanceDao">
+   
+   <!-- 휴가테이블 호출 -> 캘린더 -->
+   <select id="attdance_calen_list" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+      SELECT ATTENDANCE_ID, START_DATE as at_start_date, REASON as at_reason, END_DATE as at_end_date, ATTENDANCE_STATUS, EMPLOYEE_ID, COLOR
+      FROM ATTENDANCE
+      WHERE EMPLOYEE_ID=#{sessionID}
+      AND ATTENDANCE_STATUS like '%휴가%'
+      
+   </select>
+   
+   
+   <!-- 근태 정보 입력 -> 캘린더(fullCalendar) -->
+   <insert id="attdance_calen_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+      INSERT INTO ATTENDANCE(ATTENDANCE_ID, START_DATE, ATTENDANCE_STATUS, EMPLOYEE_ID, END_DATE, COLOR) 
+      VALUES ((SELECT NVL(MAX(ATTENDANCE_ID)+1,1) FROM ATTENDANCE), #{at_start_date}+(interval '9' hour), #{attendance_status}, #{employee_id}, #{at_end_date}+(interval '9' hour), #{color})
+   </insert>
+   
+   <!-- 개인 출/퇴근 정보 호출  -->
+   <select id="per_attdance_list" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+      SELECT ATTENDANCE_ID, START_DATE as at_start_date, REASON as at_reason, END_DATE as at_end_date, ATTENDANCE_STATUS, EMPLOYEE_ID, COLOR
+      FROM ATTENDANCE
+      WHERE EMPLOYEE_ID=#{sessionID}
+      AND ATTENDANCE_STATUS NOT like '%휴가%'
+      ORDER BY START_DATE DESC
+   </select>
+
+   <!-- 개인 별 출근 정보 입력 -->
+   <insert id="per_attdance_list_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+      INSERT INTO ATTENDANCE(ATTENDANCE_ID, START_DATE, ATTENDANCE_STATUS, EMPLOYEE_ID) 
+      VALUES ((SELECT NVL(MAX(ATTENDANCE_ID)+1,1) FROM ATTENDANCE), #{at_start_date}, #{attendance_status}, #{employee_id})
+   </insert>
+   
+   <!-- 개인 별 퇴근 정보 업데이트 -->
+   <update id="per_attdance_list_update" parameterType="com.spring.team_one.dto.AssembleDTO">
+      UPDATE ATTENDANCE
+      SET END_DATE = #{at_end_date}, ATTENDANCE_STATUS = #{attendance_status}
+      WHERE SUBSTR(TO_CHAR(START_DATE),0,8) = SUBSTR(TO_CHAR(#{at_end_date}),0,8)
+      AND EMPLOYEE_ID =#{employee_id}
+   </update>
+   
+   
+   
+   
+   
+</mapper>        

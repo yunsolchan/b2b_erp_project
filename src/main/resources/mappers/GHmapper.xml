@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        
+<mapper namespace="com.spring.team_one.dao.GHDaoImpl">
+
+	<select id="my_info" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT e.employee_id employee_id,
+			   e.name em_name,
+			   e.PHOTO photo,
+			   e.REGISTER_NUMBER register_number,
+			   e.PHONE em_phone,
+			   e.EMAIL em_email,
+			   e.HIRE_DATE hire_date,
+			   e.ADDRESS em_address,
+			   e.DETAIL_ADDRESS em_detail_address,
+			   e.ZIP_CODE em_zip_code,
+			   e.STATUS em_status,
+			   e.SALARY salary,
+			   e.ANNUAL_COUNT annual_count,
+			   p.NAME po_name,
+			   d.name de_name,
+			   a.account_number account_number
+		  FROM EMPLOYEE e, position p, department d, account a
+		 WHERE e.POSITION_ID = p.POSITION_ID
+		   AND e.department_id = d.department_id
+		   AND a.employee_id = e.employee_id
+		   AND e.employee_id = #{emp_id}
+		   AND a.account_name = '급여계좌'
+	</select>
+	
+	<select id="pw_chk" parameterType="String" resultType="String">
+		SELECT password FROM employee WHERE employee_id = #{id}
+	</select>
+	
+	<update id="pw_update_action" parameterType="java.util.Map">
+		UPDATE employee SET password = #{pw} WHERE employee_id = #{id}
+	</update>
+	
+    <update id="info_update_action" parameterType="com.spring.team_one.dto.AssembleDTO">
+    	UPDATE employee SET NAME = #{em_name}, photo = #{photo}, PHONE = #{em_phone},
+    	EMAIL = #{em_email}, ADDRESS = #{em_address}, ZIP_CODE=#{em_zip_code}, DETAIL_ADDRESS=#{em_detail_address}
+    	WHERE employee_id = #{employee_id}
+    </update>
+    
+    <select id="my_salary_list" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT s.payday payday,
+		       s.PAYMENT_STATUS payment_status,
+		       s.salary_id salary_id,
+		       n.net_pay
+		  FROM salary s, v_net_pay n
+		 WHERE s.salary_id = n.salary_id 
+		   AND s.employee_id = #{id}
+	</select>
+	
+	<!-- 급여명세서 -->
+    <select id="my_salary_detail" resultType="com.spring.team_one.dto.AssembleDTO">
+       SELECT s.BASIC_SALARY
+           , ta.OVERTIME_PAY
+           , ta.BONUS_PAY
+           , ta.TRANSPORTATION_FEE
+           , ta.HOLYDAY_PAY
+           , ta.POSITION_PAY
+           , nta.MEEL_FEE
+           , nta.DRIVE_FEE
+           , nta.CHILD_FEE
+           , t.INCOME_TAX
+           , t.LOCAL_INCOME_TAX
+           , t.NATIONAL_PENSION
+           , t.HEALTH_INSURANCE
+           , t.EMPLOYMENT_INSURANCE
+           , t.LONG_TERM_CARE
+           , NVL(va.AMOUNT_PAY, 0) AMOUNT_PAY
+           , NVL(vt.TAX, 0) TAX
+           , NVL(vn.NET_PAY, 0) NET_PAY
+           , s.payday
+        FROM SALARY s
+        JOIN TAX t
+          ON s.TAX_ID = t.TAX_ID
+        JOIN TAXTION ta
+          ON s.TAXTION_ID = ta.TAXTION_ID
+        JOIN NON_TAXTION nta
+          ON s.NON_TAXTION_ID = nta.NON_TAXTION_ID
+        JOIN EMPLOYEE e
+          ON s.EMPLOYEE_ID = e.EMPLOYEE_ID
+        JOIN v_amount_pay va
+          ON va.SALARY_ID = s.SALARY_ID
+        JOIN v_tax vt
+          ON vt.SALARY_ID = s.SALARY_ID
+        JOIN v_net_pay vn
+          ON vn.SALARY_ID = s.SALARY_ID
+       WHERE s.SALARY_ID=#{salary_id}
+    </select>
+    
+    <!-- 급여요청 -->
+    <insert id="salary_request" parameterType="java.util.Map">
+    	INSERT INTO request(request_id, begin_date, type, status, employee_id, memo)
+    	VALUES ((SELECT NVL(MAX(request_id)+1, 1) FROM request),current_date,'급여요청','신청',#{employee_id}, #{memo})
+    </insert>
+    
+    <!-- 비용요청1 -->
+    <insert id="cost_request" parameterType="java.util.Map">
+    	INSERT INTO request(request_id, begin_date, type, status, employee_id, client_id, department_id, memo)
+    	VALUES ((SELECT NVL(MAX(request_id)+1, 1) FROM request),current_date,'비용신청','신청',#{employee_id}, 0, 200,#{what_cost_detail})
+    </insert>
+    
+    <!-- 비용요청2 -->
+    <insert id="cost_slip" parameterType="java.util.Map">
+    	INSERT INTO slip(slip_id, type, request_id)
+    	VALUES ((SELECT NVL(MAX(slip_id)+1, 1) FROM slip),'비용',(SELECT MAX(request_id) FROM request))
+    </insert>
+    
+    <!-- 비용요청3 -->
+    <insert id="cost_oe" parameterType="java.util.Map">
+    	INSERT INTO OPERATING_EXPENSE(OE_ID, ACCOUNT_TITLE,EXPENSES,ABSTRACT,REQUEST_ID,ACCOUNT_NUMBER)
+    	VALUES ((SELECT NVL(MAX(OE_ID)+1, 1) FROM OPERATING_EXPENSE),#{what_cost},#{how_much_cost},#{what_cost_detail},(SELECT MAX(request_id) FROM request),#{account_number})
+    </insert>
+    
+    <select id="account_number" parameterType="String" resultType="String">
+    	SELECT account_number FROM (SELECT * FROM account WHERE employee_id = #{employee_id}) WHERE ROWNUM = 1
+    </select>
+    
+    <select id="request_list" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+    	SELECT memo re_memo, begin_date, status re_status FROM request WHERE employee_id = #{id} 
+    	AND (type = '급여요청' OR type = '비용신청')
+    </select>
+    
+    
+</mapper>

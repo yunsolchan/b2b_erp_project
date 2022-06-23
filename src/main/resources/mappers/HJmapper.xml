@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        
+<mapper namespace="com.spring.team_one.dao.HJDao">
+  
+      <!-- 부서목록 -->
+   <select id="dept_list" resultType="com.spring.team_one.dto.AssembleDTO">
+      SELECT department_id
+           , name de_name
+           , tel
+           , address de_address
+           , detail_address de_detail_address
+           , zip_code de_zip_code
+        FROM DEPARTMENT ORDER BY DEPARTMENT_ID
+   </select>
+   
+      <!-- 부서명 -->
+   <select id="dept_name" resultType="String">
+      SELECT name de_name
+        FROM DEPARTMENT
+       WHERE DEPARTMENT_ID = #{department_id}
+   </select>
+   
+   <!-- 부서상세 -->
+   <select id="dept_detail" resultType="com.spring.team_one.dto.AssembleDTO">
+      SELECT e.EMPLOYEE_ID
+            , e.NAME em_name
+            , e.PHONE em_phone
+            , e.EMAIL em_email
+            , e.HIRE_DATE
+            , d.NAME de_name
+            , p.NAME po_name
+            , e.STATUS em_status
+         FROM EMPLOYEE e
+         JOIN DEPARTMENT d
+          ON d.DEPARTMENT_ID = e.DEPARTMENT_ID
+         JOIN POSITION p
+            ON p.POSITION_ID = e.POSITION_ID
+         WHERE d.DEPARTMENT_ID = #{department_id}
+         ORDER BY e.HIRE_DATE
+   </select>
+   
+   <!-- 부서추가 -->
+   <insert id="dept_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+      INSERT INTO DEPARTMENT(DEPARTMENT_ID, NAME, TEL, ADDRESS, DETAIL_ADDRESS, ZIP_CODE)
+      VALUES(#{department_id}, #{de_name}, #{tel}, #{de_address}, #{de_detail_address}, #{de_zip_code})
+   </insert>
+    
+      <!-- 인사카드목록 -->
+   <select id="emp_list" resultType="com.spring.team_one.dto.AssembleDTO">
+      SELECT e.EMPLOYEE_ID
+             , e.NAME em_name
+            , e.PHONE em_phone
+            , e.EMAIL em_email
+            , e.HIRE_DATE
+            , d.NAME de_name
+            , p.NAME po_name
+            , e.STATUS em_status
+          FROM EMPLOYEE e
+          JOIN DEPARTMENT d
+          ON d.DEPARTMENT_ID = e.DEPARTMENT_ID
+          JOIN POSITION p
+          ON p.POSITION_ID = e.POSITION_ID
+        WHERE e.status NOT IN '퇴직'
+        ORDER BY e.HIRE_DATE
+   </select>
+   
+   <!-- 인사카드추가 -->
+    <insert id="emp_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+       INSERT INTO employee(EMPLOYEE_ID,NAME,PHOTO,REGISTER_NUMBER,PHONE,EMAIL,
+       HIRE_DATE,ADDRESS,DETAIL_ADDRESS,ZIP_CODE,PASSWORD,SALARY,ANNUAL_COUNT,authority,POSITION_ID,DEPARTMENT_ID)
+       VALUES (#{employee_id}, #{em_name}, #{photo}, #{register_number}, #{em_phone}, #{em_email},
+       #{hire_date}, #{em_address}, #{em_detail_address},#{em_zip_code}, #{password}, #{salary}, #{annual_count}, 
+       #{authority}, #{position_id}, #{department_id})
+    </insert>
+    
+    <!-- 계좌추가 -->
+    <insert id="emp_account" parameterType="com.spring.team_one.dto.AssembleDTO">
+       INSERT INTO ACCOUNT(ACCOUNT_NUMBER, BANK, NAME, ACCOUNT_NAME, PURPOSE, EMPLOYEE_ID, DEPARTMENT_ID)
+       VALUES (#{account_number}, #{bank}, #{ac_name}, '급여계좌', '급여계좌', #{employee_id}, #{department_id})
+    </insert>
+    
+    <!-- 인사카드상세 -->
+    <select id="emp_detail" resultType="com.spring.team_one.dto.AssembleDTO">
+       SELECT e.*
+        , e.NAME em_name
+        , d.NAME de_name
+        , p.NAME po_name
+        , e.PHONE em_phone
+        , e.EMAIL em_email
+        , e.ADDRESS em_address
+        , e.DETAIL_ADDRESS em_detail_address
+        , e.ZIP_CODE em_zip_code
+        , a.account_number
+        , a.bank 
+     FROM EMPLOYEE e
+     JOIN DEPARTMENT d
+       ON d.DEPARTMENT_ID = e.DEPARTMENT_ID
+     JOIN POSITION p
+       ON p.POSITION_ID = e.POSITION_ID
+     JOIN ACCOUNT a
+       ON a.EMPLOYEE_ID = e.EMPLOYEE_ID
+     WHERE e.EMPLOYEE_ID = #{employee_id}
+       AND a.ACCOUNT_NAME = '급여계좌'
+    </select>
+    
+    <!-- 직급목록-->
+     <select id="emp_position" resultType="com.spring.team_one.dto.AssembleDTO">
+       SELECT POSITION_ID position_id
+           , NAME po_name
+         FROM POSITION
+    </select>
+    
+    <!-- 인사카드수정처리 -->
+    <update id="emp_update_action" parameterType="com.spring.team_one.dto.AssembleDTO">
+      UPDATE employee 
+         SET EMPLOYEE_ID=#{employee_id}, NAME=#{em_name}, PHOTO=#{photo}, REGISTER_NUMBER=#{register_number}, PHONE=#{em_phone}, 
+         EMAIL=#{em_email}, ADDRESS=#{em_address}, DETAIL_ADDRESS=#{em_detail_address}, ZIP_CODE=#{em_zip_code}, 
+         PASSWORD=#{password}, SALARY=#{salary}, ANNUAL_COUNT=#{annual_count}, authority=#{authority}, POSITION_ID=#{position_id}, DEPARTMENT_ID=#{department_id},
+         STATUS=#{em_status}
+       WHERE EMPLOYEE_ID=#{employee_id}
+    </update>
+    
+    <!-- 사번중복체크 ajax -->
+   <select id="employee_id_check" parameterType="String" resultType="Integer">
+      SELECT COUNT(*)
+        FROM employee
+       WHERE EMPLOYEE_ID IN #{employee_id}
+   </select>
+   
+   <!-- 계좌중복확인 ajax -->
+   <select id="account_submit_check" parameterType="String" resultType="Integer">
+      SELECT COUNT(*)
+        FROM account
+       WHERE ACCOUNT_NUMBER IN #{account_number}
+   </select>
+    
+    <!-- 근태조회 -->
+    <select id="attend_list" resultType="com.spring.team_one.dto.AssembleDTO">
+      SELECT e.EMPLOYEE_ID
+           , e.name em_name
+           , a.start_date at_start_date
+           , a.end_date at_end_date
+           , NVL(a.attendance_status, '출근전') attendance_status
+        FROM EMPLOYEE e, ATTENDANCE a
+       WHERE e.employee_id = a.employee_id(+)
+         AND TO_CHAR(a.START_DATE(+), 'YYYY-MM-DD') = #{date}
+    </select>  
+      
+    <!-- 근태조회2 -->
+    <select id="attend_list_today" resultType="com.spring.team_one.dto.AssembleDTO">
+   SELECT e.EMPLOYEE_ID
+        , e.name em_name
+        , a.start_date at_start_date
+        , a.end_date at_end_date
+        , NVL(a.attendance_status, '출근전') attendance_status
+     FROM EMPLOYEE e, ATTENDANCE a
+    WHERE e.employee_id = a.employee_id(+)
+      AND TO_CHAR(a.START_DATE(+), 'YYYY-MM-DD') = TO_CHAR(current_date, 'YYYY-MM-DD')
+    </select>
+    
+    <!-- 근태승인(휴가) -->
+    <select id="attend_update" resultType="com.spring.team_one.dto.AssembleDTO">
+       SELECT a.ATTENDANCE_ID
+            , a.START_DATE at_start_date
+            , a.END_DATE at_end_date
+            , a.REASON at_reason
+            , a.EMPLOYEE_ID
+            , a.ATTENDANCE_STATUS
+            , e.ANNUAL_COUNT
+          FROM ATTENDANCE a
+          JOIN EMPLOYEE e
+          ON e.EMPLOYEE_ID = a.EMPLOYEE_ID
+        WHERE a.ATTENDANCE_STATUS = '휴가요청'
+    </select>
+    
+    <!-- 근태승인처리 -->
+    <update id="attend_update_action" parameterType="int">
+       UPDATE ATTENDANCE
+            SET ATTENDANCE_STATUS = '휴가'
+                , COLOR = 'BLUE'
+       WHERE ATTENDANCE_ID =#{attendance_id}
+    </update>
+    
+    <!-- 휴가일수차감 -->
+    <update id="attend_update_count" parameterType="int">
+      UPDATE EMPLOYEE
+         SET ANNUAL_COUNT = (SELECT ANNUAL_COUNT
+        FROM EMPLOYEE
+       WHERE EMPLOYEE_ID = (SELECT EMPLOYEE_ID
+        FROM ATTENDANCE
+       WHERE ATTENDANCE_ID = #{attendance_id})) -
+      (SELECT SUBSTR(TO_CHAR(END_DATE - START_DATE, 'dd'),9,2) FROM ATTENDANCE WHERE ATTENDANCE_ID = #{attendance_id})
+      WHERE EMPLOYEE_ID = (SELECT EMPLOYEE_ID
+        FROM ATTENDANCE
+       WHERE ATTENDANCE_ID = #{attendance_id})
+    </update>
+    
+    <!-- 급여목록 -->
+    <select id="salary_list" resultType="com.spring.team_one.dto.AssembleDTO" parameterType="String">
+       SELECT s.SALARY_ID
+           , e.EMPLOYEE_ID
+           , s.BASIC_SALARY
+           , s.PAYMENT_STATUS 
+           , s.PAYDAY
+           , (SELECT OVERTIME_PAY FROM V_OT_PAY WHERE MONTH=#{payday} AND EMPLOYEE_ID=e.EMPLOYEE_ID) OVERTIME_PAY
+           , ta.BONUS_PAY
+           , ta.TRANSPORTATION_FEE
+           , ta.HOLYDAY_PAY
+           , ta.POSITION_PAY
+           , nta.MEEL_FEE
+           , nta.DRIVE_FEE
+           , nta.CHILD_FEE
+           , t.INCOME_TAX
+           , t.LOCAL_INCOME_TAX
+           , t.NATIONAL_PENSION
+           , t.HEALTH_INSURANCE
+           , t.EMPLOYMENT_INSURANCE
+           , t.LONG_TERM_CARE
+           , NVL(va.AMOUNT_PAY, 0) AMOUNT_PAY
+           , NVL(vt.TAX, 0) TAX
+           , NVL(vn.NET_PAY, 0) NET_PAY
+        FROM SALARY s
+        JOIN TAX t
+          ON s.TAX_ID = t.TAX_ID
+        JOIN TAXTION ta
+          ON s.TAXTION_ID = ta.TAXTION_ID
+        JOIN NON_TAXTION nta
+          ON s.NON_TAXTION_ID = nta.NON_TAXTION_ID
+        JOIN EMPLOYEE e
+          ON s.EMPLOYEE_ID = e.EMPLOYEE_ID
+        JOIN v_amount_pay va
+          ON va.SALARY_ID = s.SALARY_ID
+        JOIN v_tax vt
+          ON vt.SALARY_ID = s.SALARY_ID
+        JOIN v_net_pay vn
+          ON vn.SALARY_ID = s.SALARY_ID
+       WHERE s.PAYDAY=#{payday}
+       ORDER BY SALARY_ID DESC
+    </select>
+    
+    <!-- 급여목록2 -->
+    <select id="salary_list_today" resultType="com.spring.team_one.dto.AssembleDTO" parameterType="String">
+       SELECT s.SALARY_ID
+           , e.EMPLOYEE_ID
+           , s.BASIC_SALARY
+           , s.PAYMENT_STATUS 
+           , s.PAYDAY
+           , (SELECT OVERTIME_PAY FROM V_OT_PAY WHERE MONTH=TO_CHAR(sysdate , 'YYYYMM') AND EMPLOYEE_ID=e.EMPLOYEE_ID) OVERTIME_PAY
+           , ta.BONUS_PAY
+           , ta.TRANSPORTATION_FEE
+           , ta.HOLYDAY_PAY
+           , ta.POSITION_PAY
+           , nta.MEEL_FEE
+           , nta.DRIVE_FEE
+           , nta.CHILD_FEE
+           , t.INCOME_TAX
+           , t.LOCAL_INCOME_TAX
+           , t.NATIONAL_PENSION
+           , t.HEALTH_INSURANCE
+           , t.EMPLOYMENT_INSURANCE
+           , t.LONG_TERM_CARE
+           , NVL(va.AMOUNT_PAY, 0) AMOUNT_PAY
+           , NVL(vt.TAX, 0) TAX
+           , NVL(vn.NET_PAY, 0) NET_PAY
+        FROM SALARY s
+        JOIN TAX t
+          ON s.TAX_ID = t.TAX_ID
+        JOIN TAXTION ta
+          ON s.TAXTION_ID = ta.TAXTION_ID
+        JOIN NON_TAXTION nta
+          ON s.NON_TAXTION_ID = nta.NON_TAXTION_ID
+        JOIN EMPLOYEE e
+          ON s.EMPLOYEE_ID = e.EMPLOYEE_ID
+        JOIN v_amount_pay va
+          ON va.SALARY_ID = s.SALARY_ID
+        JOIN v_tax vt
+          ON vt.SALARY_ID = s.SALARY_ID
+        JOIN v_net_pay vn
+          ON vn.SALARY_ID = s.SALARY_ID
+       WHERE s.PAYDAY = TO_CHAR(sysdate+31 , 'YYYYMM')
+       ORDER BY SALARY_ID DESC
+    </select>
+    
+    <!-- 급여 지급일 -->
+    <select id="salary_payday" resultType="String">
+       SELECT DISTINCT PAYDAY FROM SALARY WHERE PAYDAY = #{payday}
+    </select>
+    
+    <!-- 급여 과세수정 -->
+    <update id="salary_taxtion" parameterType="com.spring.team_one.dto.AssembleDTO">
+      UPDATE TAXTION 
+         SET OVERTIME_PAY=#{overtime_pay}, BONUS_PAY=#{bonus_pay}
+             , TRANSPORTATION_FEE=#{transportation_fee}
+             , HOLYDAY_PAY=#{holyday_pay}, POSITION_PAY=#{position_pay}
+       WHERE TAXTION_ID=#{salary_id}
+    </update>
+    
+    <!-- 급여 비과세수정 -->
+    <update id="salary_nontaxtion" parameterType="com.spring.team_one.dto.AssembleDTO">
+         UPDATE NON_TAXTION 
+         SET MEEL_FEE=#{meel_fee}, DRIVE_FEE=#{drive_fee}
+             , CHILD_FEE=#{child_fee}
+       WHERE NON_TAXTION_ID=#{salary_id}
+    </update>
+    
+    <!-- 급여 세금수정 -->
+    <update id="salary_tax" parameterType="com.spring.team_one.dto.AssembleDTO">
+         UPDATE TAX 
+         SET INCOME_TAX=#{income_tax}, LOCAL_INCOME_TAX=#{local_income_tax}
+             , NATIONAL_PENSION=#{national_pension}, HEALTH_INSURANCE=#{health_insurance}
+             , EMPLOYMENT_INSURANCE=#{employment_insurance}, LONG_TERM_CARE=#{long_term_care}
+       WHERE TAX_ID=#{salary_id}
+    </update>
+
+    <!-- 급여 요청할 목록 -->
+    <select id="req_emp" resultType="com.spring.team_one.dto.AssembleDTO">
+       SELECT vn.employee_id
+           , vn.net_pay
+           , vn.salary_id
+        FROM v_net_pay vn
+        JOIN SALARY s
+          ON s.salary_id = vn.salary_id
+       WHERE s.payment_status = 'N'
+          AND s.PAYDAY = #{payday}
+    </select>
+        
+    <!-- 급여 요청할 목록2 -->
+    <select id="req_emp_today" resultType="com.spring.team_one.dto.AssembleDTO">
+       SELECT vn.employee_id
+           , vn.net_pay
+           , vn.salary_id
+        FROM v_net_pay vn
+        JOIN SALARY s
+          ON s.salary_id = vn.salary_id
+       WHERE s.payment_status = 'N'
+          AND s.PAYDAY = TO_CHAR(sysdate+31 , 'YYYYMM')
+    </select>
+    
+    <!-- 급여승인요청1 -->
+    <insert id="salary_request1" parameterType="com.spring.team_one.dto.AssembleDTO">
+       INSERT INTO request
+        VALUES((SELECT NVL(MAX(request_id)+1, 1) FROM request), 
+        SYSDATE, NULL, '급여', '신청', #{employee_id}, 0, 100, '인사부 급여신청')
+    </insert>
+    
+   <!-- 급여승인요청2 -->
+    <insert id="salary_request2" parameterType="java.util.Map">
+       INSERT INTO operating_expense
+        VALUES((SELECT NVL(MAX(oe_id)+1, 1) FROM operating_expense), 
+        '급여', #{net_pay}, 
+        (SELECT MEMO re_memo
+           FROM REQUEST
+         WHERE request_id = (SELECT MAX(request_id) 
+                  FROM REQUEST)),
+       (SELECT MAX(request_id) FROM REQUEST),
+        (SELECT ACCOUNT_NUMBER 
+           FROM ACCOUNT
+          WHERE ACCOUNT_NAME = '급여계좌'
+            AND EMPLOYEE_ID = #{employee_id}), #{employee_id})
+    </insert>
+    
+    <!-- 급여승인요청3 -->
+    <insert id="salary_request3">
+       INSERT INTO slip
+        VALUES((SELECT NVL(MAX(slip_id)+1, 1) FROM slip), '지출', SYSDATE, NULL, '신청', (SELECT MAX(request_id) FROM REQUEST))
+    </insert>
+    
+    <!-- 급여상태수정 -->
+    <update id="salary_status" parameterType="int">
+       UPDATE SALARY SET PAYMENT_STATUS = 'R' WHERE SALARY_ID=#{salary_id} 
+    </update>
+    
+    <!-- 급여관련비용 요청목록 -->
+    <select id="salary_request_list" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+       SELECT memo re_memo, begin_date, status re_status, request_id FROM request WHERE employee_id = #{employee_id} 
+       AND type = '급여요청'
+    </select>
+    
+    <!-- 급여요청승인 -->
+    <update id="salary_request_update" parameterType="int">
+       UPDATE request SET status='승인' WHERE request_id = #{request_id}
+    </update>
+    
+    <!-- 급여테이블 생성 -->
+    <insert id="salary_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+       INSERT INTO SALARY(SALARY_ID, BASIC_SALARY, TAXTION_ID, NON_TAXTION_ID, TAX_ID, EMPLOYEE_ID, PAYDAY)
+      VALUES((SELECT NVL(MAX(SALARY_ID) + 1, 1) FROM SALARY)
+      , (SELECT BASIC_SALARY 
+           FROM SALARY 
+         WHERE EMPLOYEE_ID = #{employee_id}
+             AND SALARY_ID = (SELECT MAX(SALARY_ID) FROM SALARY WHERE EMPLOYEE_ID = #{employee_id}))
+      , (SELECT NVL(MAX(SALARY_ID) + 1, 1) FROM SALARY)
+      , (SELECT NVL(MAX(SALARY_ID) + 1, 1) FROM SALARY)
+      , (SELECT NVL(MAX(SALARY_ID) + 1, 1) FROM SALARY)
+      , #{employee_id}
+      , (TO_CHAR((TO_DATE((SELECT MAX(PAYDAY) FROM SALARY WHERE EMPLOYEE_ID = #{employee_id}),'YYYYMM') +31) ,'YYYYMM')))
+    </insert>
+    
+    <!-- 급여명세서 -->
+    <select id="salary_detail" resultType="com.spring.team_one.dto.AssembleDTO">
+       SELECT s.BASIC_SALARY
+           , (SELECT OVERTIME_PAY FROM V_OT_PAY WHERE MONTH=#{payday} AND EMPLOYEE_ID=e.EMPLOYEE_ID) OVERTIME_PAY
+           , ta.BONUS_PAY
+           , ta.TRANSPORTATION_FEE
+           , ta.HOLYDAY_PAY
+           , ta.POSITION_PAY
+           , nta.MEEL_FEE
+           , nta.DRIVE_FEE
+           , nta.CHILD_FEE
+           , t.INCOME_TAX
+           , t.LOCAL_INCOME_TAX
+           , t.NATIONAL_PENSION
+           , t.HEALTH_INSURANCE
+           , t.EMPLOYMENT_INSURANCE
+           , t.LONG_TERM_CARE
+           , NVL(va.AMOUNT_PAY, 0) AMOUNT_PAY
+           , NVL(vt.TAX, 0) TAX
+           , NVL(vn.NET_PAY, 0) NET_PAY
+        FROM SALARY s
+        JOIN TAX t
+          ON s.TAX_ID = t.TAX_ID
+        JOIN TAXTION ta
+          ON s.TAXTION_ID = ta.TAXTION_ID
+        JOIN NON_TAXTION nta
+          ON s.NON_TAXTION_ID = nta.NON_TAXTION_ID
+        JOIN EMPLOYEE e
+          ON s.EMPLOYEE_ID = e.EMPLOYEE_ID
+        JOIN v_amount_pay va
+          ON va.SALARY_ID = s.SALARY_ID
+        JOIN v_tax vt
+          ON vt.SALARY_ID = s.SALARY_ID
+        JOIN v_net_pay vn
+          ON vn.SALARY_ID = s.SALARY_ID
+       WHERE s.SALARY_ID=#{salary_id}
+    </select>
+    
+    
+</mapper>

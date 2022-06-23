@@ -1,0 +1,767 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        
+<mapper namespace="com.spring.team_one.dao.MHDao">
+	<!-- ==========거래처관리 탭========== -->
+	<!-- 거래처 목록 -->
+	<select id="client_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		 SELECT c.client_id client_id
+		      , c.type cl_type
+		      , c.name cl_name
+		      , c.ceo_name ceo_name
+		      , c.register_num register_num
+		      , c.address cl_address
+		      , c.phone cl_phone
+		      , c.email cl_email
+		      , c.register_date cl_register_date
+		   FROM client c
+		  WHERE c.type NOT IN '우리회사'
+		   ORDER BY cl_register_date DESC
+	</select>
+	
+	<!-- 거래처 거래내역 -->
+	<select id="client_transaction" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		 SELECT s.sale_slip_id sale_slip_id
+		      , s.supply_amount supply_amount
+		      , s.tax_amount
+		      , s.type sa_type
+		      , s.abstract sa_abstract
+		      , slip.update_date
+		      , c.name cl_name
+		      , c.type cl_type
+		   FROM client c, request r, slip slip, sales_slip s
+	 	  WHERE s.slip_id = slip.slip_id
+		    AND slip.request_id = r.request_id
+		    AND r.client_id = c.client_id
+		    AND c.client_id IN #{client_id}
+		  ORDER BY slip.register_date DESC
+	</select>
+	
+	<!-- 거래처 상세처리 -->
+	<select id="client_detail" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT client_id 
+			, type cl_type
+			, name cl_name
+			, ceo_name ceo_name
+			, email cl_email
+			, address cl_address
+			, register_num register_num
+			, phone cl_phone
+			, register_date cl_register_date
+			, status cl_status
+		 FROM client
+		WHERE client_id IN #{client_id}
+	</select>
+	
+	<!-- ==========매입/매출장관리 탭========== -->
+	<!-- 매입/매출장 전체 목록 -->
+	<select id="purchase_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT sl.register_date sl_register_date
+			 , sl.update_date update_date
+			 , sl.state state
+		     , sa.sale_slip_id sale_slip_id
+		     , sa.account_title sa_account_title
+		     , ROUND(sa.supply_amount) supply_amount
+		     , ROUND(sa.tax_amount) tax_amount
+		     , sa.type sa_type
+		     , sa.abstract sa_abstract
+		     , c.client_id client_id
+		     , c.name cl_name
+		  FROM slip sl, sales_slip sa, request r, client c
+		 WHERE sa.slip_id = sl.slip_id
+		   AND sl.request_id = r.request_id
+		   AND r.client_id = c.client_id
+		   AND sl.state NOT IN '요청'
+		 ORDER BY sa.sale_slip_id DESC
+	</select>
+	
+	<!-- 매출장 목록 -->
+	<select id="purchase_out_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT sl.register_date sl_register_date
+			 , sl.update_date update_date
+			 , sl.state state
+		     , sa.sale_slip_id sale_slip_id
+		     , sa.account_title sa_account_title
+		     , ROUND(sa.supply_amount) supply_amount
+		     , ROUND(sa.tax_amount) tax_amount
+		     , sa.type sa_type
+		     , sa.abstract sa_abstract
+		     , c.client_id client_id
+		     , c.name cl_name
+		  FROM slip sl, sales_slip sa, request r, client c
+		 WHERE sa.slip_id = sl.slip_id
+		   AND sl.request_id = r.request_id
+		   AND r.client_id = c.client_id
+		   AND sa.type IN '매출'
+		   AND sl.state NOT IN '요청'
+		 ORDER BY sa.sale_slip_id DESC
+	</select>
+	
+	<!-- 매입장 목록 -->
+	<select id="purchase_in_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT sl.register_date sl_register_date
+			 , sl.update_date update_date
+			 , sl.state state
+		     , sa.sale_slip_id sale_slip_id
+		     , sa.account_title sa_account_title
+		     , ROUND(sa.supply_amount) supply_amount
+		     , ROUND(sa.tax_amount) tax_amount
+		     , sa.type sa_type
+		     , sa.abstract sa_abstract
+		     , c.client_id client_id
+		     , c.name cl_name
+		  FROM slip sl, sales_slip sa, request r, client c
+		 WHERE sa.slip_id = sl.slip_id
+		   AND sl.request_id = r.request_id
+		   AND r.client_id = c.client_id
+		   AND sa.type IN '매입'
+		   AND sl.state NOT IN '요청'
+		 ORDER BY sa.sale_slip_id DESC
+	</select>
+	
+	<!-- 매입/매출장 상세 -->
+	<select id="purchase_detail" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT sa.sale_slip_id sale_slip_id
+		     , sl.register_date sl_register_date
+             , sa.abstract sa_abstract
+             , e.name em_name
+             , d.name de_name
+             , sl.slip_id 
+             , ROUND(sa.supply_amount, 0) supply_amount
+		     , ROUND(sa.tax_amount, 0) tax_amount
+             , c.name cl_name
+             , sl.update_date update_date
+             , sa.account_title sa_account_title
+		     , sl.state state
+		     , sa.type sa_type
+		     , c.client_id client_id
+		     , r.request_id 
+		  FROM slip sl, sales_slip sa, request r, client c, employee e, department d
+		 WHERE sa.slip_id = sl.slip_id
+		   AND sl.request_id = r.request_id
+		   AND r.client_id = c.client_id
+		   AND r.employee_id = e.employee_id
+		   AND r.department_id = d.department_id
+		   AND sa.sale_slip_id IN #{sale_slip_id}
+	</select>
+	
+	<!-- 매입/매출장 신청상세 목록 -->
+	<select id="purchase_det_list" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT rd.qty re_qty
+             , p.name pr_name
+             , p.cost
+             , p.price
+        FROM request r, request_detail rd, product p
+        WHERE r.request_id = rd.request_id
+        AND rd.product_id = p.product_id
+        AND r.request_id IN #{request_id}
+	</select>
+	<!--
+		승인할 계좌목록
+	SELECT account_name
+		   FROM account
+		  WHERE account_name like '%회계%'
+		    AND enable IN 'Y';
+		    
+	-->
+	<!-- 매입매출장 승인처리 -->
+	<update id="purchase_confirm" parameterType="Integer">
+		   UPDATE slip
+		      SET update_date = CURRENT_DATE
+		        , state = '승인'
+		    WHERE slip_id IN #{slip_code}
+	</update>
+	
+	<!-- 출금 거래내역 입력처리 -->
+	<insert id="bank_transfer_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+		INSERT INTO transaction
+		VALUES ((SELECT NVL(MAX(transaction_id + 1),1) FROM transaction), #{money}, SYSDATE, #{tr_memo}, '출금', #{in_account_number}, #{out_account_number})
+	</insert>
+	
+	<!-- 입금 거래내역 입력처리 -->
+	<insert id="bankin_transfer_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+		INSERT INTO transaction
+		VALUES ((SELECT NVL(MAX(transaction_id + 1),1) FROM transaction), #{money}, SYSDATE, #{tr_memo}, '입금', #{in_account_number}, #{out_account_number})
+	</insert>
+	
+	<!-- 잔액 출금처리 -->
+	<update id="bank_withdraw" parameterType="java.util.Map">
+		UPDATE account
+		SET balance = ((SELECT balance FROM account WHERE account_number IN #{account_number}) - #{cost})
+		WHERE account_number IN #{account_number}
+	</update>
+	
+	<!-- 잔액 입금처리 -->
+	<update id="bank_deposit" parameterType="java.util.Map">
+		UPDATE account
+		SET balance = ((SELECT balance FROM account WHERE account_number IN #{account_number}) + #{cost})
+		WHERE account_number IN #{account_number}
+	</update>
+	<!-- ============계좌관리 탭=============== -->
+	<!-- 전체 계좌목록 -->
+	<select id="bank_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT a.account_number account_number
+		     , a.bank bank
+		     , a.balance balance
+		     , a.account_name ac_name
+		     , a.enable ac_enable
+		     , a.purpose purpose
+		 FROM account a
+		WHERE a.department_id IN 200
+		  AND a.account_name LIKE '%출금%'
+	</select>
+	
+	<!-- 계좌정보 상세 -->
+	<select id="bank_detail" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT a.account_number account_number
+		     , a.bank bank
+		     , a.balance balance
+		     , a.name ac_name
+		     , a.purpose purpose
+		     , a.balance balance
+		     , a.account_name
+		     , a.department_id 
+		     , a.employee_id
+		     , a.enable ac_enable
+		     , a.client_id
+		     , e.name em_name
+		     , d.name de_name
+		 FROM account a, employee e, department d
+		WHERE a.employee_id = e.employee_id
+		  AND a.department_id = d.department_id
+		  AND a.department_id IN 200
+		  AND a.account_number IN #{account_number}
+	</select>
+	
+	<!-- 계좌 출금 누적액 -->
+	<select id="bank_withdraw_sum" parameterType="String" resultType="Integer">
+		SELECT NVL(SUM(money), 0)
+		  FROM transaction
+		 WHERE in_account_number IN #{account_number}
+		   AND subject IN '출금'
+	</select>
+	
+	<!-- 계좌 입금 누적액 -->
+	<select id="bank_deposit_sum" parameterType="String" resultType="Integer">
+		SELECT NVL(SUM(money), 0)
+		  FROM transaction
+		 WHERE in_account_number IN #{account_number}
+		   AND subject IN '입금'
+	</select>
+	
+	<!-- 계좌거래내역 목록 -->
+	<select id="bank_transfer_list" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT t.money
+		     , t.regi_date
+		     , t.memo tr_memo
+		     , t.subject
+		     , t.in_account_number
+		     , t.out_account_number
+		     , c.name cl_name
+		     , a.balance
+		     , c.client_id
+		  FROM transaction t, account a, client c
+		 WHERE t.out_account_number = a.account_number
+		   AND a.client_id = c.client_id
+		   AND t.in_account_number IN #{account_number}
+		 ORDER BY t.regi_date DESC
+	</select>
+	
+	<!-- 거래처계좌 검색 -->
+	<select id="client_account_lookup" parameterType="Integer" resultType="String">
+		SELECT account_number
+		  FROM account
+		 WHERE client_id IN #{client_id}
+	</select>
+	
+	<!-- 신규계좌 중복확인-->
+	<select id="bank_check" parameterType="String" resultType="Integer">
+		SELECT COUNT(*)
+		  FROM account
+		 WHERE account_number IN #{keyword}
+	</select>
+	
+	<!-- 신규계좌등록 처리 -->
+	<insert id="bank_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+		INSERT INTO account
+		VALUES (#{account_number}, #{bank}, #{ac_name}, #{purpose}, #{balance}, #{account_name}, 'Y', 200, #{employee_id}, 0, #{bank_password})
+	</insert>
+	
+	<!-- 계좌수정 처리 -->
+	<update id="bank_update" parameterType="com.spring.team_one.dto.AssembleDTO">
+		UPDATE account
+		   SET purpose = #{purpose}
+		     , bank_password = #{bank_password}
+		     , balance = #{balance}
+		     , account_name = #{account_name}
+		     , employee_id = #{employee_id}
+		     , enable = #{ac_enable}
+		 WHERE account_number IN #{account_number}
+	</update>
+	
+	<!-- 비밀번호 확인 -->
+	<select id="bank_pw_check" parameterType="String" resultType="String">
+		SELECT bank_password
+		  FROM account
+		 WHERE account_number IN #{account_number}
+	</select>
+	
+	<!-- 송금계좌 검색처리 -->
+	<select id="bank_lookup" parameterType="com.spring.team_one.dto.AssembleDTO" resultType="String">
+		SELECT DISTINCT(account_name)
+		  FROM transaction t, account a
+		 WHERE t.in_account_number = a.account_number
+		   AND money IN #{expenses}
+		   AND memo IN #{op_abstract}
+		   AND out_account_number IN #{account_number}
+	</select>
+	<!-- =============급여관리 탭=============== -->
+	<!-- 급여명세서 목록 -->
+	<select id="salary_specification_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT e.name em_name
+			, d.name de_name
+			, s.payday
+			, r.end_date
+			, s.salary_id 
+			, np.net_pay basic_salary
+			, NVL(va.AMOUNT_PAY, 0) AMOUNT_PAY
+		    , NVL(vt.TAX, 0) TAX
+		FROM salary s, employee e, department d, operating_expense oe, request r, v_net_pay np, v_amount_pay va, v_tax vt
+		WHERE s.employee_id = e.employee_id
+		AND e.department_id = d.department_id
+		AND e.employee_id = oe.employee_id
+		AND oe.request_id = r.request_id
+		AND s.salary_id = np.salary_id
+		AND s.salary_id = va.salary_id
+		AND s.salary_id = vt.salary_id
+		AND oe.account_title IN '급여'
+		AND s.payment_status IN 'Y'
+		AND r.end_date IS NOT NULL
+		ORDER BY r.end_date DESC
+	</select>
+	
+	<!-- 급여명세서 상세 -->
+	<select id="salary_specification_detail" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT s.BASIC_SALARY
+		     , ta.OVERTIME_PAY
+		     , ta.BONUS_PAY
+		     , ta.TRANSPORTATION_FEE
+		     , ta.HOLYDAY_PAY
+		     , ta.POSITION_PAY
+		     , nta.MEEL_FEE
+		     , nta.DRIVE_FEE
+		     , nta.CHILD_FEE
+		     , t.INCOME_TAX
+		     , t.LOCAL_INCOME_TAX
+		     , t.NATIONAL_PENSION
+		     , t.HEALTH_INSURANCE
+		     , t.EMPLOYMENT_INSURANCE
+		     , t.LONG_TERM_CARE
+		     , NVL(va.AMOUNT_PAY, 0) AMOUNT_PAY
+		     , NVL(vt.TAX, 0) TAX
+		     , NVL(vn.NET_PAY, 0) NET_PAY
+		  FROM SALARY s
+		  JOIN TAX t
+		    ON s.TAX_ID = t.TAX_ID
+		  JOIN TAXTION ta
+		    ON s.TAXTION_ID = ta.TAXTION_ID
+		  JOIN NON_TAXTION nta
+		    ON s.NON_TAXTION_ID = nta.NON_TAXTION_ID
+		  JOIN EMPLOYEE e
+		    ON s.EMPLOYEE_ID = e.EMPLOYEE_ID
+		  JOIN v_amount_pay va
+		    ON va.SALARY_ID = s.SALARY_ID
+		  JOIN v_tax vt
+		    ON vt.SALARY_ID = s.SALARY_ID
+		  JOIN v_net_pay vn
+		    ON vn.SALARY_ID = s.SALARY_ID
+		 WHERE s.SALARY_ID=#{salary_id}
+	</select>
+	
+	<!-- =============지출관리 탭============= -->
+	<!-- 지출요청 목록 -->
+	<select id="expenditure_request_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT r.request_id 
+		     , r.department_id
+		     , r.type re_type
+		     , r.memo re_memo
+		     , SUM(oe.expenses) expenses
+		     , r.begin_date 
+		     , r.end_date
+		     , r.status re_status
+		  FROM request r, operating_expense oe
+		 WHERE r.request_id = oe.request_id
+		 GROUP BY r.request_id, r.department_id, r.type, r.memo, r.begin_date, r.end_date, r.status
+		 ORDER BY r.request_id DESC
+	</select>
+	
+	<!-- 지출요청 상세 -->
+	<select id="expenditure_request_detail" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT s.slip_id
+		     , r.request_id
+		     , r.begin_date
+			 , r.end_date
+			 , r.type re_type
+			 , r.status re_status
+			 , r.department_id
+			 , r.memo re_memo
+			 , e.name em_name
+			 , e.employee_id 
+			 , SUM(oe.expenses) expenses
+		 FROM request r, operating_expense oe, slip s, employee e
+		WHERE r.request_id = oe.request_id
+		  AND r.request_id = s.request_id
+		  AND r.employee_id = e.employee_id
+		  AND r.request_id IN #{request_id}
+		GROUP BY s.slip_id, r.request_id, r.begin_date, r.end_date, r.type, r.status, e.employee_id, r.department_id, r.memo, e.name
+	</select>
+	
+	<!-- 지출요청 내용목록 -->
+	<select id="expenditure_detail" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT oe.account_title op_account_title
+		     , oe.expenses
+		     , oe.abstract op_abstract
+		     , oe.employee_id 
+		     , a.account_number
+		     , a.bank
+		     , a.name ac_name
+		 FROM operating_expense oe, account a
+		WHERE oe.account_number = a.account_number
+		  AND oe.request_id IN #{request_id}
+	</select>
+	
+	<!-- 지출요청 승인처리 -->
+	<update id="expenditure_request_confirm" parameterType="Integer">
+		UPDATE request
+		SET end_date = CURRENT_DATE
+		  , status = '승인'
+		WHERE request_id IN #{request_id}
+	</update>
+	
+	<!-- 지출전표 승인처리 -->
+	<update id="expenditure_slip_confirm" parameterType="Integer">
+		UPDATE slip
+		SET update_date = CURRENT_DATE
+		  , state = '승인'
+		WHERE slip_id IN #{slip_id}
+	</update>
+	
+	<!-- 급여 승인처리 -->
+	<update id="salary_confirm" parameterType="String">
+		UPDATE salary
+		SET payment_status = 'Y'
+		WHERE salary_id IN (SELECT MAX(salary_id) FROM salary WHERE employee_id IN #{employee_id})
+	</update> 
+	
+	<!-- 급여테이블 생성 -->
+    <insert id="salary_insert" parameterType="String">
+    	INSERT INTO SALARY(SALARY_ID, BASIC_SALARY, TAXTION_ID, NON_TAXTION_ID, TAX_ID, EMPLOYEE_ID, PAYDAY)
+		VALUES((SELECT NVL(MAX(SALARY_ID) + 1, 1) FROM SALARY)
+		, (SELECT BASIC_SALARY 
+  			FROM SALARY 
+		   WHERE EMPLOYEE_ID = #{employee_id}
+   			 AND SALARY_ID = (SELECT MAX(SALARY_ID) FROM SALARY WHERE EMPLOYEE_ID = #{employee_id}))
+		, (SELECT NVL(MAX(SALARY_ID) + 1, 1) FROM SALARY)
+		, (SELECT NVL(MAX(SALARY_ID) + 1, 1) FROM SALARY)
+		, (SELECT NVL(MAX(SALARY_ID) + 1, 1) FROM SALARY)
+		, #{employee_id}
+		, (TO_CHAR((TO_DATE((SELECT MAX(PAYDAY) FROM SALARY WHERE EMPLOYEE_ID = #{employee_id}),'YYYYMM') +31) ,'YYYYMM')))
+    </insert>
+	
+	<!-- 지출요청 보류처리 -->
+	<update id="expenditure_request_reject" parameterType="Integer">
+		UPDATE request
+		SET end_date = CURRENT_DATE
+		  , status = '보류'
+		WHERE request_id IN #{request_id}
+	</update>
+	
+	<!-- 지출전표 보류처리 -->
+	<update id="expenditure_slip_reject" parameterType="Integer">
+		UPDATE slip
+		SET update_date = CURRENT_DATE
+		  , state = '보류'
+		WHERE slip_id IN #{slip_id}
+	</update>
+	
+	<!-- 지출결의서 목록 -->
+	<select id="expenditure_resolution_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT s.slip_id
+		     , r.request_id
+			 , s.update_date
+			 , r.type re_type
+			 , r.status re_status
+			 , d.name de_name
+			 , r.memo re_memo
+			 , SUM(oe.expenses) expenses
+		 FROM request r, operating_expense oe, slip s, department d
+		WHERE r.request_id = oe.request_id
+		  AND r.request_id = s.request_id
+		  AND r.department_id = d.department_id
+		  AND r.status IN '승인'
+		  AND s.state IN '승인'
+		GROUP BY s.slip_id, r.request_id, s.update_date, r.type, r.status, d.name, r.memo
+		ORDER BY s.update_date DESC
+	</select>
+	
+	<!--  , (SELECT account_name
+				  FROM transaction t, account a
+				 WHERE t.in_account_number = a.account_number
+				   AND money IN (SELECT oe.expenses
+				   				   FROM operating_expense oe
+				   				  WHERE oe.request_id = r.request_id
+				   				    AND oe.oe_id IN (SELECT MIN(oe_id)
+				   				    				   FROM operating_expense oe
+				   				  					  WHERE oe.request_id = r.request_id))
+				   AND memo IN (SELECT oe.abstract
+				   				   FROM operating_expense oe
+				   				  WHERE oe.request_id = r.request_id
+				   				    AND oe.oe_id IN (SELECT MIN(oe_id)
+				   				    				   FROM operating_expense oe
+				   				  					  WHERE oe.request_id = r.request_id))
+				   AND out_account_number IN (SELECT oe.account_number
+				   				   FROM operating_expense oe
+				   				  WHERE oe.request_id = r.request_id
+				   				    AND oe.oe_id IN (SELECT MIN(oe_id)
+				   				    				   FROM operating_expense oe
+				   				  					  WHERE oe.request_id = r.request_id))) -->
+	
+	<!-- 부서별 지출결의서 목록 -->
+	<select id="expenditure_dep_resolution_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT *
+		FROM client
+	</select>
+	
+	<!-- 지출결의서 상세 -->
+	<select id="expenditure_resolution_detail" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT s.slip_id
+		     , r.request_id
+		     , s.register_date sl_register_date
+			 , s.update_date
+			 , r.type re_type
+			 , r.status re_statusW
+			 , r.memo re_memo
+			 , e.name em_name
+			 , e.employee_id 
+			 , d.name de_name
+			 , SUM(oe.expenses) expenses
+		 FROM request r, operating_expense oe, slip s, employee e, department d
+		WHERE r.request_id = oe.request_id
+		  AND r.request_id = s.request_id
+		  AND r.employee_id = e.employee_id
+		  AND r.department_id = d.department_id
+		  AND r.request_id IN #{request_id}
+		GROUP BY s.slip_id, r.request_id, s.register_date, s.update_date, r.type, r.status, r.memo, e.name, e.employee_id, d.name
+	</select>
+	
+	<!-- 송금처리(요청) -->
+	<insert id="expenditure_transfer_req" parameterType="com.spring.team_one.dto.AssembleDTO">
+		INSERT INTO request
+		VALUES((SELECT NVL(MAX(request_id)+1, 1) FROM request), CURRENT_DATE, CURRENT_DATE, #{re_type}, '승인', #{employee_id}, #{client_id}, 200, #{re_memo})
+	</insert>
+	
+	<!-- 송금처리(전표) -->
+	<insert id="expenditure_transfer_slp" parameterType="String">
+		INSERT INTO slip
+		VALUES((SELECT NVL(MAX(slip_id)+1, 1) FROM slip), #{subject}, CURRENT_DATE, CURRENT_DATE, '승인', (SELECT NVL(MAX(request_id), 1) FROM request))
+	</insert>
+	
+	<!-- 송금처리(세부) -->
+	<insert id="expenditure_transfer_det" parameterType="com.spring.team_one.dto.AssembleDTO">
+		INSERT INTO operating_expense
+		VALUES((SELECT NVL(MAX(oe_id)+1, 1) FROM operating_expense), #{op_account_title}, #{expenses}, #{op_abstract}, (SELECT NVL(MAX(request_id), 1) FROM request), #{account_number}, #{employee_id})
+	</insert>
+	
+	<!-- 송금처리(거래내역) -->
+	<insert id="expenditure_transfer_trn" parameterType="com.spring.team_one.dto.AssembleDTO">
+		INSERT INTO transaction
+		VALUES((SELECT NVL((MAX(transaction_id)+1), 1) FROM transaction), #{expenses}, CURRENT_DATE, #{op_abstract}, '출금', #{in_account_number}, #{account_number})
+	</insert>
+
+	<!-- 계좌여부 확인 -->
+	<select id="account_number_lookup" parameterType="String" resultType="String">
+		SELECT account_number
+		  FROM account
+		 WHERE account_number IN #{account_number}
+	</select>
+	
+	<!-- 새로운 계좌 생성 -->
+	<insert id="transfer_account_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+		INSERT INTO account
+		VALUES(#{account_number}, #{bank}, #{ac_name}, '지급비용 입금', 0, '지급금 입금계좌', 'Y', 200, #{employee_id}, #{client_id}, '-')
+	</insert>
+	
+	<!-- 거래처명 확인 -->
+	<select id="client_check" parameterType="String" resultType="String">
+		SELECT name
+		  FROM client
+		 WHERE name IN #{client_name}
+	</select>
+	
+	<!-- 거래처아이디 검색 -->
+	<select id="client_name_lookup" parameterType="String" resultType="Integer">
+		SELECT client_id
+		  FROM client
+		 WHERE name IN #{client_name}
+	</select>
+	<!-- ==============결산관리 탭============ -->
+	<!-- 품목별 매출차트 -->
+	<select id="financial_product_chart" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT *
+		FROM client
+	</select>
+	
+	<!-- 거래처별 매출차트 -->
+	<select id="financial_client_chart" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT *
+		FROM client
+	</select>
+	
+	<!-- 월별 매출차트 -->
+	<select id="financial_month_chart" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT EXTRACT(MONTH from s.update_date) as payday
+                , SUM((ROUND(sa.supply_amount, 0) + ROUND(sa.tax_amount, 0))) as expenses
+        FROM sales_slip sa, slip s
+        WHERE sa.slip_id = s.slip_id
+        AND sa.type IN '매출'
+        AND s.state IN '승인'
+        GROUP BY EXTRACT(MONTH from s.update_date)
+        ORDER BY EXTRACT(MONTH from s.update_date)
+	</select>
+	
+	<!-- =================================================== -->
+	<!-- 월별 재무상태표 -->
+	<select id="financial_statement" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT *
+		FROM client
+	</select>
+	
+	<!-- 보통예금(유동자산) -->
+	<!-- 현재출금계좌 잔액합계 -->
+	<select id="bank_assets" resultType="Integer">
+		SELECT ROUND(SUM(a.balance))
+		 FROM account a
+		WHERE a.department_id IN 200
+          AND a.enable NOT IN 'N'
+          AND a.account_name LIKE '%출금%'
+	</select>
+	
+	<!-- 매출채권 -->
+	<!-- 현재 날짜 기반, 월 매출 공급가액 합계 -->
+	<select id="trade_receivable" resultType="Integer">
+		SELECT ROUND(SUM(ss.supply_amount))
+         FROM sales_slip ss, slip s
+         WHERE ss.slip_id = s.slip_id
+         AND TO_CHAR(s.register_date,'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+         AND ss.type IN '매출'
+         AND s.state IN '승인'
+	</select>
+	
+	<!-- 매입채무 -->
+	<!-- 현재 날짜 기반, 월 매입 공급가액 합계 -->
+	<select id="trade_payable" resultType="Integer">
+		SELECT ROUND(SUM(ss.supply_amount))
+         FROM sales_slip ss, slip s
+         WHERE ss.slip_id = s.slip_id
+         AND TO_CHAR(s.register_date,'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+         AND ss.type IN '매입'
+	</select>
+	
+	<!-- 부가세대급금 -->
+	<!-- 매입시 미리 지불한 부가세 => 자산 -->
+	<select id="vat_payment" resultType="Integer">
+		SELECT ROUND(SUM(ss.tax_amount))
+         FROM sales_slip ss, slip s
+         WHERE ss.slip_id = s.slip_id
+         AND TO_CHAR(s.register_date,'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+         AND ss.type IN '매입'
+	</select>
+	
+	<!-- 부가세예수금 -->
+	<!-- 매출시 미리 받은 부가세 => 부채 -->
+	<select id="vat_deposit" resultType="Integer">
+		SELECT ROUND(SUM(ss.tax_amount))
+         FROM sales_slip ss, slip s
+         WHERE ss.slip_id = s.slip_id
+         AND TO_CHAR(s.register_date,'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+         AND ss.type IN '매출'
+	</select>
+	
+	<!-- =================================================== -->
+	<!-- 월별 손익계산서 -->
+	<select id="financial_income_statement" parameterType="Integer" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT *
+		FROM client
+	</select>
+	
+	<!-- 매출총액 -->
+	<select id="take_sales" resultType="Integer">
+		SELECT ROUND(SUM(ss.supply_amount + ss.tax_amount))
+		FROM slip s, sales_slip ss
+		where s.slip_id = ss.slip_id
+		and s.state IN '승인'
+		and ss.type IN '매출'
+		AND TO_CHAR(s.register_date,'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+	</select>
+	
+	<!-- 기초상품 재고 입력일 조회-->
+	<select id="beg_inven_select" resultType="Integer">
+		SELECT TO_NUMBER(TO_CHAR(MAX(i_time), 'yyyymmdd'))
+		FROM inventory
+	</select>
+	
+	<!-- 기초상품 재고 입력-->
+	<insert id="beg_inven_insert" parameterType="Integer">
+		INSERT INTO inventory
+		VALUES(CURRENT_DATE, #{cost})
+	</insert>
+	
+	<!-- 기초상품 재고액 -->
+	<select id="beginning_inventory" resultType="Integer">
+		SELECT i_cost
+		FROM inventory
+		WHERE i_time IN (SELECT MAX(i_time)
+		                FROM inventory)
+	</select>
+	
+	<!-- 당기순 매입액 -->
+	<select id="current_inventory" resultType="Integer">
+		SELECT ROUND(SUM(ss.supply_amount + ss.tax_amount))
+		FROM slip s, sales_slip ss
+		where s.slip_id = ss.slip_id
+		and s.state IN '승인'
+		and ss.type IN '매입'
+		AND TO_CHAR(s.register_date,'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+	</select>
+	
+	<!-- 기말상품 재고액 -->
+	<select id="ending_inventory" resultType="Integer">
+		SELECT SUM(l.qty * p.cost)
+		FROM lack l, product p
+		WHERE l.product_id = p.product_id
+	</select>
+	
+	<!-- 급여총액 -->
+	<select id="total_salary" resultType="Integer">
+		SELECT ROUND(SUM(v.net_pay), 0)
+		FROM v_net_pay v, salary s
+		WHERE v.salary_id = s.salary_id
+		AND s.payday = TO_CHAR(SYSDATE,'YYYYMM')
+	</select>
+	
+	<!-- 각 비용 계정별 검색 -->
+	<select id="all_expense_lookup" parameterType="String" resultType="Integer">
+		SELECT SUM(expenses)
+		  FROM operating_expense
+		WHERE account_title IN #{subject}
+	</select>
+	
+	<!-- 비과세 소득합계 -->
+	<select id="non_tax_sum" resultType="Integer">
+		SELECT SUM(non_taxtion)
+		FROM v_non_taxtion
+		WHERE PAYDAY = TO_CHAR(SYSDATE,'YYYYMM')
+	</select>
+</mapper>

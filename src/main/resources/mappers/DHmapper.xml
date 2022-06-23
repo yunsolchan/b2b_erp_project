@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        
+<mapper namespace="com.spring.team_one.dao.DHDao">
+
+	<!-- 창고  목록-->
+	<select id="warehouseList"  resultType="com.spring.team_one.dto.AssembleDTO">
+   			SELECT name wa_name, volume volume, reg_date wa_reg_date, status wa_status, wh_id wh_id
+  			  FROM warehouse
+  			  ORDER BY wh_id ASC
+	</select>
+	
+	<!-- 전체 렉갯수 -->
+	<select id="all_lack_count" parameterType="Integer" resultType="Integer">
+		SELECT COUNT(*)
+		FROM warehouse w, lack l
+		WHERE w.wh_id = l.wh_id
+		AND w.wh_id IN #{wh_id}
+	</select>
+	
+	<!-- 사용렉갯수 -->
+	<select id="use_lack_count" parameterType="Integer" resultType="Integer">
+		SELECT COUNT(*)
+		FROM lack
+		WHERE qty NOT IN 0
+		AND wh_id = #{wh_id}
+	</select>
+	
+	<!-- 창고 상세  -->
+	<select id="getWarehouseDetail" resultType="com.spring.team_one.dto.AssembleDTO">
+		  SELECT name wa_name, zip_code wa_zip_code, address wa_address, detail_address wa_detail_address, TO_CHAR(reg_date,'YYYY-MM-DD') account_number, volume volume , status wa_status
+		  FROM warehouse
+		 WHERE wh_id = #{wh_id}
+  	</select> 
+	
+	<!-- 창고 등록  -->
+	<insert id="warehouse_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+		INSERT INTO warehouse(wh_id, name, zip_code, address, detail_address, volume)
+		VALUES(#{wh_id}, #{wa_name}, #{wa_zip_code}, #{wa_address}, #{wa_detail_address}, #{volume})
+	</insert>
+	
+	<!-- 랙등록 -->
+	<insert id="warehouse_lackInsert" parameterType="java.util.Map">
+	INSERT INTO LACK(LACK_CODE, LOCATION, WH_ID) VALUES((SELECT NVL(MAX(LACK_CODE) + 1, 1) FROM LACK),#{lack_code},#{wh_id})
+	</insert>
+	
+	<!-- 재고현황  -->
+   <select id="getStockList" parameterType="int" resultType="com.spring.team_one.dto.AssembleDTO">
+    SELECT p.product_id product_id
+         ,   p.name pr_name
+         , w.name wa_name
+         , l.qty la_qty
+         , l.lack_code lack_code
+         , l.location location
+         , w.wh_id wh_id
+     FROM warehouse w, lack l, product p
+     where l.wh_id = w.wh_id
+       and p.product_id = l.product_id
+       and w.wh_id = #{wh_id}
+       ORDER BY location ASC
+   </select>
+	
+	<!-- 재고상세  -->
+	<select id="getStockDetail" parameterType="int" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT p.product_id product_id
+		     , p.name pr_name
+		     , l.lack_code lack_code
+		     , l.location location
+		     , l.qty la_qty
+		  FROM warehouse w	
+		  JOIN lack l 
+		    ON l.wh_id = w.wh_id
+		  JOIN product p
+		    ON p.product_id = l.product_id
+		  WHERE l.lack_code = #{lack_code}
+	</select>
+	
+	<!-- 재고조정_기존랙에서 물품제거 -->
+	<update id="stock_Update_Action" parameterType="int">
+ 	 UPDATE lack
+	    SET qty=0, product_id=null
+	  WHERE lack_code = #{old_lack_code}
+	</update>
+	
+	<!-- 재고조정_새로운랙에 물품추가 -->
+	<update id="stock_Update_Action2" parameterType="com.spring.team_one.dto.AssembleDTO">
+ 	 UPDATE lack
+	    SET qty=#{la_qty}, product_id=#{product_id}
+	  WHERE lack_code = #{lack_code}
+	</update>
+	
+	<!-- 입하지시 현황 -->
+	<select id="getArrivalList" resultType="com.spring.team_one.dto.AssembleDTO">    
+	   SELECT c.name cl_name, r.begin_date begin_date, 
+	   count(rd.qty)re_qty, r.status re_status , 
+	   r.request_id request_id, i.inbound_date ,
+	   i.wh_id , w.name wa_name
+		 FROM client c
+		    , request r
+		    , request_detail rd
+		    , inbound i
+		    , warehouse w
+		WHERE r.client_id = c.client_id
+		  AND i.request_id = r.request_id
+		  AND r.request_id = rd.request_id
+		  AND w.wh_id = i.wh_id
+		  AND r.type = '주문서'
+		  AND r.status = '요청'
+		group by c.name,r.begin_date,r.status,r.request_id,i.inbound_date, w.name, i.wh_id
+		ORDER BY request_id desc
+	</select>
+	
+	<!-- 입하지시  -->
+	<select id="arrival_Indicate" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT i.inbound_id
+		     , c.name cl_name
+		     , r.begin_date
+		     , c.register_num
+		     , i.inbound_date
+		     , c.phone cl_phone
+		     , e.name em_name
+		     , c.address cl_address
+		     , e.phone em_phone
+		     , c.ceo_name
+		     , w.wh_id
+		     , w.name wa_name
+		     , w.zip_code wa_zip_code
+		     , w.address wa_address
+		     , w.detail_address wa_detail_address
+		     , r.request_id
+		     , r.memo re_memo
+		FROM request r, inbound i, employee e, client c, warehouse w
+		WHERE r.request_id = i.request_id
+		  AND i.wh_id = w.wh_id
+		  AND r.employee_id = e.employee_id
+		  AND r.client_id = c.client_id
+		  AND r.request_id IN #{request_id}
+	</select>
+	
+	<!-- 입하지시 물품 목록  -->
+	<select id="arrival_Indicate_product" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT p.name pr_name
+		     , rd.qty re_qty
+		     , p.PRODUCT_ID
+		     , p.CATEGORY
+		     , r.memo re_memo
+		FROM request r, request_detail rd, product p
+		WHERE r.request_id = rd.request_id
+		AND rd.product_id = p.product_id
+		AND r.request_id IN #{request_id}
+	</select>	
+	
+	<!-- 입하지시 처리 -->
+	<update id="arrival_indicate_action" parameterType="int">
+		UPDATE request SET status = '승인' WHERE request_id = #{request_id}
+	</update>
+	
+	<!-- 입하 내역  -->
+	<select id="arrival_history_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT c.name cl_name, r.begin_date begin_date, 
+		   count(rd.qty)re_qty, r.status re_status , 
+		   r.request_id request_id, i.inbound_date ,
+		   i.wh_id , w.name wa_name, i.status inbound_status
+		 FROM client c
+		    , request r
+		    , request_detail rd
+		    , inbound i
+		    , warehouse w
+		WHERE r.client_id = c.client_id
+		  AND i.request_id = r.request_id
+		  AND r.request_id = rd.request_id
+		  AND w.wh_id = i.wh_id
+		  AND r.type = '주문서'
+		  AND r.status = '승인'
+		group by c.name,r.begin_date,r.status,r.request_id,i.inbound_date, w.name, i.wh_id, i.status
+		ORDER BY request_id desc
+	</select>
+	
+	<!-- 입고요청 현황 -->
+	<select id="warehousing_Request_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT c.name cl_name, r.begin_date begin_date, 
+			   count(rd.qty)re_qty, 
+			   r.request_id, i.inbound_date ,
+			   i.wh_id , w.name wa_name, i.inbound_id
+		 FROM client c
+		    , request r
+		    , request_detail rd
+		    , inbound i
+		    , warehouse w
+		WHERE r.client_id = c.client_id
+		  AND i.request_id = r.request_id
+		  AND r.request_id = rd.request_id
+		  AND w.wh_id = i.wh_id
+		  AND r.type = '주문서'
+		  AND r.status = '승인'
+		  AND i.status = '입고대기'
+		group by c.name,r.begin_date,r.request_id,i.inbound_date, w.name, i.wh_id, inbound_id
+		ORDER BY request_id desc
+	</select>
+	
+	<!-- 랙리스트 -->
+	<select id="lack_list" parameterType="int" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT LOCATION, PRODUCT_ID, QTY la_qty, LACK_CODE
+		  FROM LACK
+		 WHERE wh_id = #{wh_id}
+		 ORDER BY LACK_CODE
+	</select>
+	
+	<!-- 입고처리 -->
+	<update id="warehousing_indicate_action_request" parameterType="int">
+		UPDATE request SET end_date = sysdate WHERE request_id = #{request_id}
+	</update>
+	
+	<update id="warehousing_indicate_action_inbound" parameterType="int">
+		UPDATE inbound SET status = '입고완료' WHERE inbound_id = #{inbound_id}
+	</update>
+	
+	<update id="warehousing_indicate_action_lack" parameterType="java.util.Map">
+		UPDATE lack 
+		SET product_id = #{product_id}, qty = #{qty} 
+		WHERE lack_code = #{lack_code}
+	</update>
+	
+	<!-- 입고 내역 -->
+	<select id="warehousing_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT c.name cl_name,
+			   rd.qty re_qty, 
+			   r.request_id, i.inbound_date ,
+			   i.wh_id , w.name wa_name, i.inbound_id, p.product_id product_id
+		 FROM client c
+		    , request r
+		    , request_detail rd
+		    , inbound i
+		    , warehouse w
+		    , product p
+		WHERE r.client_id = c.client_id
+		  AND i.request_id = r.request_id
+		  AND r.request_id = rd.request_id
+		  AND w.wh_id = i.wh_id
+		  AND p.product_id = rd.product_id
+		  AND r.type = '주문서'
+		  AND r.status = '승인'
+		  AND i.status = '입고완료'
+		  ORDER BY request_id desc
+	</select>
+	
+	<!-- 출하지시현황 -->
+    <select id="getDeliver_indicate_list" resultType="com.spring.team_one.dto.AssembleDTO">    
+       SELECT c.name cl_name, r.begin_date begin_date, 
+	   count(rd.qty)re_qty, r.status re_status , 
+	   r.request_id request_id, o.outbound_date ,
+	   o.wh_id , w.name wa_name
+		 FROM client c
+		    , request r
+		    , request_detail rd
+		    , outbound o
+		    , warehouse w
+		WHERE r.client_id = c.client_id
+		  AND o.request_id = r.request_id
+		  AND r.request_id = rd.request_id
+		  AND w.wh_id = o.wh_id
+		  AND r.type = '주문서'
+		  AND r.status = '요청'
+		group by c.name,r.begin_date,r.status,r.request_id,o.outbound_date, w.name, o.wh_id
+		ORDER BY request_id desc
+	</select>
+	
+	<!-- 출하지시 -->
+	<select id="deliver_indicate" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT o.outbound_id
+		     , c.name cl_name
+		     , r.begin_date
+		     , c.register_num
+		     , o.outbound_date
+		     , c.phone cl_phone
+		     , e.name em_name
+		     , c.address cl_address
+		     , e.phone em_phone
+		     , c.ceo_name
+		     , w.wh_id
+		     , w.name wa_name
+		     , w.zip_code wa_zip_code
+		     , w.address wa_address
+		     , w.detail_address wa_detail_address
+		     , r.request_id
+		FROM request r, outbound o, employee e, client c, warehouse w
+		WHERE r.request_id = o.request_id
+		  AND o.wh_id = w.wh_id
+		  AND r.employee_id = e.employee_id
+		  AND r.client_id = c.client_id
+		  AND r.request_id IN #{request_id}
+	</select>
+	
+	<!-- 출하지시 물품 목록  -->
+	<select id="deliver_indicate_product" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT p.name pr_name
+		     , rd.qty re_qty
+		     , p.PRODUCT_ID
+		     , p.CATEGORY
+		     , r.memo re_memo
+		FROM request r, request_detail rd, product p
+		WHERE r.request_id = rd.request_id
+		AND rd.product_id = p.product_id
+		AND r.request_id IN #{request_id}
+	</select>	
+	
+	<!-- 출하지시 처리 -->
+	<update id="deliver_indicate_action" parameterType="int">
+		UPDATE request SET status = '승인' WHERE request_id = #{request_id}
+	</update>
+
+	<!-- 출하내역  -->
+	 <select id="getDeliver_history_list" resultType="com.spring.team_one.dto.AssembleDTO">    
+      SELECT c.name cl_name, r.begin_date begin_date, 
+			   count(rd.qty)re_qty, r.status re_status , 
+			   r.request_id request_id, o.outbound_date ,
+			   o.wh_id , w.name wa_name, o.status outbound_status
+		 FROM client c
+		    , request r
+		    , request_detail rd
+		    , outbound o
+		    , warehouse w
+		WHERE r.client_id = c.client_id
+		  AND o.request_id = r.request_id
+		  AND r.request_id = rd.request_id
+		  AND w.wh_id = o.wh_id
+		  AND r.type = '주문서'
+		  AND r.status = '승인'
+		group by c.name,r.begin_date,r.status,r.request_id,o.outbound_date, w.name, o.wh_id, o.status
+		ORDER BY request_id desc
+	</select>
+	
+	<!-- 출고 요청 현황 -->
+	<select id="getRelease_Request_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT c.name cl_name, r.begin_date begin_date, 
+			   count(rd.qty)re_qty, 
+			   r.request_id, o.outbound_date ,
+			   o.wh_id , w.name wa_name, o.outbound_id
+		 FROM client c
+		    , request r
+		    , request_detail rd
+		    , outbound o
+		    , warehouse w
+		WHERE r.client_id = c.client_id
+		  AND o.request_id = r.request_id
+		  AND r.request_id = rd.request_id
+		  AND w.wh_id = o.wh_id
+		  AND r.type = '주문서'
+		  AND r.status = '승인'
+		  AND o.status = '출고대기'
+		group by c.name,r.begin_date,r.request_id,o.outbound_date, w.name, o.wh_id, outbound_id
+		ORDER BY request_id desc
+	</select>
+	
+	<!-- 랙리스트 -->
+	<select id="release_lack_list" parameterType="java.util.Map" resultType="com.spring.team_one.dto.LackDTO">
+		SELECT LOCATION location , PRODUCT_ID product_id , QTY la_qty, LACK_CODE lack_code
+		  FROM LACK
+		 WHERE wh_id = #{wh_id}
+		   AND product_id = #{product_id}
+		 ORDER BY LACK_CODE
+	</select>
+	
+	<!-- 출고처리 -->
+	<update id="release_indicate_action_request" parameterType="int">
+		UPDATE request SET end_date = sysdate WHERE request_id = #{request_id}
+	</update>
+	
+	<update id="release_indicate_action_outbound" parameterType="int">
+		UPDATE outbound SET status = '출고완료' WHERE outbound_id = #{outbound_id}
+	</update>
+	
+	<update id="release_indicate_action_lack" parameterType="java.util.Map">
+		UPDATE lack SET qty=qty-#{qty} 
+		WHERE lack_code = #{lack_code}
+	</update>
+	
+	<select id="progresssBar" parameterType="int" resultType="com.spring.team_one.dto.LackDTO">
+		select count(*) from lack where wh_id = #{wh_id}
+	</select>
+	
+	<!-- 출고 내역 -->
+	<select id="release_history_list" resultType="com.spring.team_one.dto.AssembleDTO">
+		SELECT c.name cl_name,
+			   rd.qty re_qty, 
+			   r.request_id, o.outbound_date ,
+			   o.wh_id , w.name wa_name, o.outbound_id, p.product_id
+		 FROM client c
+		    , request r
+		    , request_detail rd
+		    , outbound o
+		    , warehouse w
+		    , product p
+		WHERE r.client_id = c.client_id
+		  AND o.request_id = r.request_id
+		  AND r.request_id = rd.request_id
+		  AND w.wh_id = o.wh_id
+		  AND p.product_id = rd.product_id
+		  AND r.type = '주문서'
+		  AND r.status = '승인'
+		  AND o.status = '출고완료'
+		  ORDER BY request_id desc
+	</select>
+</mapper>

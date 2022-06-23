@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        
+<mapper namespace="com.spring.team_one.dao.SCDao">
+    
+    <!-- 거래처 등록 -->
+    <insert id="client_insert_action" parameterType="com.spring.team_one.dto.AssembleDTO">
+    	INSERT INTO CLIENT(CLIENT_ID, TYPE, NAME, CEO_NAME, EMAIL, ADDRESS, DETAIL_ADDRESS, 
+               ZIP_CODE, REGISTER_NUM, PHONE, REGISTER_DATE, STATUS)
+               VALUES ((SELECT NVL(MAX(CLIENT_ID)+1,1) FROM CLIENT),'구매',#{cl_name},#{ceo_name},#{cl_email},#{cl_address},
+               #{cl_detail_address},#{cl_zip_code},#{register_num},#{cl_phone},current_date,'거래중')
+    </insert>
+    
+    <!-- 계좌 등록 -->
+    <insert id="bank_insert_action" parameterType="com.spring.team_one.dto.AssembleDTO">
+    	INSERT INTO ACCOUNT(ACCOUNT_NUMBER,BANK,NAME,PURPOSE,ACCOUNT_NAME,DEPARTMENT_ID,EMPLOYEE_ID,CLIENT_ID)
+		VALUES (#{account_number},#{bank},#{ceo_name},'거래계좌','거래계좌',(SELECT DEPARTMENT_ID FROM employee WHERE employee_id = #{employee_id}),#{employee_id},(SELECT MAX(client_id) FROM client))
+    </insert>
+    
+    <!-- 거래처 목록 -->
+    <select id="client_list"  resultMap="client_map">
+ 		SELECT c.CLIENT_ID, c.NAME , c.REGISTER_NUM, c.CEO_NAME, c.PHONE, c.ADDRESS,
+			        c.DETAIL_ADDRESS, c.REGISTER_DATE, c.TYPE , c.EMAIL, c.ZIP_CODE
+			FROM CLIENT c
+			WHERE c.TYPE = '구매'
+			AND c.STATUS = '거래중'
+	 	  order by c.REGISTER_DATE desc
+ 	</select>
+ 	
+ 	<!-- 거래처 상세 -->
+ 	<select id="client_detail" parameterType="int" resultMap="client_map">
+ 		SELECT c.CLIENT_ID, c.NAME , c.REGISTER_NUM, c.CEO_NAME, c.PHONE, c.ADDRESS,
+			        c.DETAIL_ADDRESS, c.REGISTER_DATE, c.TYPE , c.EMAIL, c.ZIP_CODE
+	      FROM client c
+	     WHERE #{num} = c.client_id
+ 	</select>    
+ 	
+ 	<!-- 거래처 목록, 상세 맵 -->
+ 	<resultMap id="client_map" type="com.spring.team_one.dto.AssembleDTO">
+   		<result property="client_id" column="CLIENT_ID" />
+   		<result property="cl_name" column="NAME" />
+   		<result property="register_num" column="REGISTER_NUM" />
+   		<result property="ceo_name" column="CEO_NAME" />
+   		<result property="cl_phone" column="PHONE" />
+   		<result property="cl_address" column="ADDRESS" />
+   		<result property="cl_detail_address" column="DETAIL_ADDRESS" />
+   		<result property="cl_register_date" column="REGISTER_DATE" />
+   		<result property="cl_type" column="TYPE" />
+   		<result property="cl_email" column="EMAIL" />
+   		<result property="cl_zip_code" column="ZIP_CODE" />
+   </resultMap>
+   
+   <!-- 거래처 상품 등록 -->
+   <insert id="client_product_insert" parameterType="java.util.Map">
+    	INSERT INTO product(PRODUCT_ID,NAME,CATEGORY,COST,REGISTER_DATE,CLIENT_ID)
+			      VALUES ((SELECT NVL(MAX(product_id)+1,1) FROM PRODUCT),#{product_name},#{product_category},#{product_price},current_date,(SELECT MAX(client_id) FROM client))
+    </insert>
+    
+    <!-- 거래처 상품 목록 -->
+    <select id="client_product_list"  resultMap="product_map">
+ 		SELECT p.*
+		  FROM product p
+		 WHERE #{num} = p.client_id
+ 	</select>
+ 	
+ 	<!-- 상품 목록, 상세 맵 -->
+ 	<resultMap id="product_map" type="com.spring.team_one.dto.AssembleDTO">
+   		<result property="product_id" column="product_id" />
+   		<result property="pr_name" column="NAME" />
+   		<result property="category" column="category" />
+   		<result property="cost" column="cost" />
+   		<result property="price" column="price" />
+   		<result property="pr_register_date" column="REGISTER_DATE" />
+   </resultMap>
+   
+   <!-- 거래처 삭제 -->
+   <update id="client_delete" parameterType="int">
+	UPDATE client 
+	SET status='거래안함'
+	WHERE client_id = #{num}
+	</update>
+	
+	<!-- 거래처 수정 -->
+	<update id="client_update" parameterType="com.spring.team_one.dto.AssembleDTO">
+	UPDATE client 
+	SET NAME=#{cl_name}, REGISTER_NUM=#{register_num}, EMAIL=#{cl_email}, CEO_NAME=#{ceo_name}, ADDRESS=#{cl_address}, DETAIL_ADDRESS=#{cl_detail_address},
+	 ZIP_CODE=#{cl_zip_code},PHONE=#{cl_phone}
+	WHERE client_id=#{client_id}
+	</update>
+	
+	<!-- 거래처 상품 수정 -->
+	<update id="client_product_update" parameterType="java.util.Map">
+	UPDATE product 
+	SET NAME=#{product_name}, category=#{product_category}, cost=#{product_price}
+	WHERE product_id=#{product_id}
+	</update>
+	
+	<!-- 사원 정보 -->
+	<select id="employeeInfo" parameterType="String" resultMap="employee_map">
+ 		SELECT e.employee_id, e.name, e.phone, e.email, d.name dname , e.department_id
+		  FROM employee e
+		  JOIN department d
+		    ON e.department_id = d.department_id
+  		 WHERE e.employee_id = #{id}
+ 	</select>    
+   
+   <!-- 사원 정보 맵 -->
+   	<resultMap id="employee_map" type="com.spring.team_one.dto.AssembleDTO">
+   		<result property="employee_id" column="employee_id" />
+   		<result property="em_name" column="NAME" />
+   		<result property="em_phone" column="phone" />
+   		<result property="em_email" column="email" />
+   		<result property="de_name" column="dname" />
+   		<result property="department_id" column="department_id" />
+   </resultMap>
+   
+   <!--  -->
+   <insert id="estimate_application_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+    	INSERT INTO REQUEST(REQUEST_ID, BEGIN_DATE,  EMPLOYEE_ID, CLIENT_ID, DEPARTMENT_ID, TYPE)
+				VALUES ((SELECT NVL(MAX(request_id)+1,1) FROM REQUEST),current_date,#{employee_id},#{client_id},#{department_id},'견적서요청')
+    </insert>
+    
+    <!--  -->
+     <insert id="estimate_application_detail_insert" parameterType="java.util.Map">
+    	INSERT INTO request_detail(RD_ID, PRODUCT_ID, QTY, request_id)
+				VALUES ((SELECT NVL(MAX(RD_ID)+1,1) FROM request_detail),#{product_id},#{qty},(SELECT MAX(REQUEST_ID) FROM REQUEST))
+    </insert>
+    
+    <!-- 견적 신청서 등록 -->
+    <select id="estimate_application_list" resultMap="estimate_application_map">
+ 		SELECT r.request_id, c.name, c.ceo_name, c.phone, e.name emname, begin_date 
+		  FROM request r
+		  JOIN client c
+		    ON r.client_id = c.client_id
+		  JOIN employee e
+		    ON r.employee_id = e.employee_id
+		 WHERE r.TYPE = '견적서요청'
+		 ORDER BY begin_date desc
+ 	</select>    
+ 	
+ 	<!-- 견적 신청서 맵 -->
+ 	<resultMap id="estimate_application_map" type="com.spring.team_one.dto.AssembleDTO">
+   		<result property="request_id" column="request_id" />
+   		<result property="cl_name" column="name" />
+   		<result property="ceo_name" column="ceo_name" />
+   		<result property="cl_phone" column="phone" />
+   		<result property="em_name" column="emname" />
+   		<result property="begin_date" column="begin_date" />
+   </resultMap>
+   
+   <!-- 견적 신청서 목록 불러오기 -->
+   <select id="estimate_application_detail" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+ 		SELECT r.request_id, c.name cl_name, c.ceo_name, c.phone cl_phone, e.name em_name, r.begin_date, c.email cl_email,
+       e.phone em_phone, d.name de_name, e.email em_email
+		  FROM request r
+		  JOIN client c
+		    ON r.client_id = c.client_id
+		  JOIN employee e
+		    ON r.employee_id = e.employee_id
+          JOIN department d
+            ON e.department_id = d.department_id
+		 WHERE r.TYPE = '견적서요청'
+           AND request_id = #{id}
+ 	</select>    
+ 	
+ 	<!-- 견적 신청서 상세정보의 상품 리스트 -->
+    <select id="estimate_application_detail_list" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+ 		SELECT r.qty re_qty, p.name pr_name, p.category, r.request_id
+		  FROM REQUEST_DETAIL r
+		  JOIN PRODUCT p
+		    ON r.product_id = p.product_id
+		 WHERE r.request_id = #{id}
+ 	</select>    
+    
+    <!-- 견적서 등록-->
+    <insert id="estimate_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+    	INSERT INTO REQUEST(REQUEST_ID, BEGIN_DATE,  EMPLOYEE_ID, CLIENT_ID, DEPARTMENT_ID, TYPE)
+				VALUES ((SELECT NVL(MAX(request_id)+1,1) FROM REQUEST),current_date,#{employee_id},#{client_id},#{department_id},'견적서')
+    </insert>
+    
+    <!-- 견적서 상세 등록 -->
+    <insert id="estimate_detail_insert" parameterType="java.util.Map">
+    	INSERT INTO request_detail(RD_ID, PRODUCT_ID, QTY, request_id)
+				VALUES ((SELECT NVL(MAX(RD_ID)+1,1) FROM request_detail),#{product_id},#{qty},(SELECT MAX(REQUEST_ID) FROM REQUEST))
+    </insert>
+    
+    <!-- 견적서 목록 불러오기 -->
+    <select id="estimate_list" resultMap="estimate_application_map">
+ 		SELECT r.request_id, c.name, c.ceo_name, c.phone, e.name emname, begin_date 
+		  FROM request r
+		  JOIN client c
+		    ON r.client_id = c.client_id
+		  JOIN employee e
+		    ON r.employee_id = e.employee_id
+		 WHERE r.TYPE = '견적서'
+		 AND c.TYPE = '구매'
+		 ORDER BY begin_date desc
+ 	</select>    
+ 	
+ 	<!-- 견적서 맵 -->
+ 	<resultMap id="estimate_map" type="com.spring.team_one.dto.AssembleDTO">
+   		<result property="request_id" column="request_id" />
+   		<result property="cl_name" column="name" />
+   		<result property="ceo_name" column="ceo_name" />
+   		<result property="cl_phone" column="phone" />
+   		<result property="em_name" column="emname" />
+   		<result property="begin_date" column="begin_date" />
+   </resultMap>
+   
+   <!-- 견적서 상세정보 -->
+   <select id="estimate_detail" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+ 		SELECT r.request_id, c.name cl_name, c.ceo_name, c.phone cl_phone, e.name em_name, r.begin_date, c.email cl_email,
+       e.phone em_phone, d.name de_name, e.email em_email
+		  FROM request r
+		  JOIN client c
+		    ON r.client_id = c.client_id
+		  JOIN employee e
+		    ON r.employee_id = e.employee_id
+          JOIN department d
+            ON e.department_id = d.department_id
+           WHERE request_id = #{id}
+ 	</select>    
+ 	
+ 	<!-- 견적서 상세정보의 상품 리스트 -->
+    <select id="estimate_detail_list" parameterType="String" resultType="com.spring.team_one.dto.AssembleDTO">
+ 		SELECT r.qty re_qty, p.name pr_name, p.category, p.cost
+		  FROM REQUEST_DETAIL r
+		  JOIN PRODUCT p
+		    ON r.product_id = p.product_id
+		 WHERE r.request_id = #{id}
+ 	</select> 
+ 	
+ 	<!-- 견적서 목록 팝업 -->
+    <select id="estimate_list_select" resultType="com.spring.team_one.dto.AssembleDTO">
+ 		SELECT r.request_id ,c.CLIENT_ID, c.NAME cl_name, c.REGISTER_NUM, c.CEO_NAME, c.PHONE cl_phone, c.ADDRESS cl_address,
+			        c.DETAIL_ADDRESS cl_detail_address, c.REGISTER_DATE cl_cl_register_date, c.TYPE cl_type, c.EMAIL cl_email, c.ZIP_CODE cl_zip_code
+			FROM CLIENT c
+            JOIN request r
+              ON c.client_id = r.client_id
+			WHERE r.TYPE = '견적서'
+			AND c.TYPE = '구매'
+			AND c.CLIENT_ID = #{id}
+ 	</select> 
+ 	
+ 	<!-- 견적서 상품 목록 팝업 -->
+    <select id="estimate_product_list_select" resultType="com.spring.team_one.dto.AssembleDTO">
+ 		SELECT p.name pr_name, r.request_id, r.qty re_qty, r.product_id, p.cost 
+		  FROM request_detail r
+		  JOIN product p
+		    ON r.product_id = p.product_id
+		  JOIN request e
+		    ON r.request_id = e.request_id
+		 WHERE e.type = '견적서'
+		 
+ 	</select> 
+ 	
+ 	<!-- 주문서 등록 -->
+ 	<insert id="order_insert" parameterType="com.spring.team_one.dto.AssembleDTO">
+    	INSERT INTO REQUEST(REQUEST_ID, BEGIN_DATE, EMPLOYEE_ID, CLIENT_ID, DEPARTMENT_ID, TYPE, STATUS, MEMO, END_DATE)
+		VALUES ((SELECT NVL(MAX(request_id)+1,1) FROM REQUEST),current_date,#{employee_id},#{client_id},#{department_id},'주문서','요청대기',#{re_memo},current_date+3)
+    </insert>
+    
+    <!-- 전표 등록 -->
+ 	<insert id="slip_insert">
+    	INSERT INTO SLIP(SLIP_ID, TYPE ,REQUEST_ID)
+		VALUES ((SELECT NVL(MAX(SLIP_ID)+1,1) FROM SLIP),'구매', (SELECT MAX(request_id) FROM REQUEST))
+    </insert>
+    
+    <!-- 매입 매출 전표 등록 -->
+ 	<insert id="sales_slip_insert" parameterType="java.util.Map">
+    	INSERT INTO SALES_SLIP(SALE_SLIP_ID,ACCOUNT_TITLE,SUPPLY_AMOUNT,TAX_AMOUNT,TYPE,SLIP_ID)
+		VALUES ((SELECT NVL(MAX(SALE_SLIP_ID)+1,1) FROM SALES_SLIP), '상품구매', #{supply}, #{tax},'매입',(SELECT MAX(slip_id) FROM SLIP))
+    </insert>
+    
+    <!-- 입하 등록 -->
+ 	<insert id="inbound_insert" parameterType="java.util.Map">
+    	INSERT INTO INBOUND(inbound_id,request_id,wh_id,INBOUND_DATE)
+		VALUES ((SELECT NVL(MAX(inbound_id)+1,1)FROM inbound), #{request_id}, #{wh_id},current_date)
+    </insert>
+    
+    <!-- 주문서 목록 불러오기 -->
+    <select id="order_list" resultType="com.spring.team_one.dto.AssembleDTO">
+ 		SELECT r.request_id, c.name cl_name, c.ceo_name, c.phone cl_phone, e.name em_name, r.begin_date , r.end_date , s.state, r.status re_status
+		  FROM request r
+		  JOIN client c
+		    ON r.client_id = c.client_id
+		  JOIN employee e
+		    ON r.employee_id = e.employee_id
+          JOIN SLIP s
+            ON r.request_id = s.request_id
+		 WHERE r.TYPE = '주문서'
+		   AND c.TYPE = '구매'
+		 order by r.begin_date desc
+ 	</select>    
+ 	
+ 	<!-- 전표 승인 요청 -->
+	<update id="slip_update" parameterType="String">
+	UPDATE slip
+	SET state='신청' 
+	WHERE request_id=#{request_id}
+	</update>
+	
+	<!-- 매입 매출 전표 적요 추가 -->
+	<update id="sales_slip_update" parameterType="java.util.Map">
+	UPDATE sales_slip
+	SET abstract = #{good}
+	WHERE slip_id = (SELECT slip_id FROM slip WHERE request_id = #{request_id})
+	</update>
+	
+	<!-- 창고 목록 -->
+	<select id="warehouse_list" resultType="com.spring.team_one.dto.AssembleDTO">
+ 		SELECT wh_id, name wa_name
+  		FROM WAREHOUSE
+ 	</select> 
+ 	
+ 	<!-- 전표 승인 요청 -->
+	<update id="request_update" parameterType="String">
+	UPDATE request
+	SET status = '요청' 
+	WHERE request_id = #{request_id}
+	</update>   
+	
+	<!-- 거래처명 중복확인 -->
+	<select id="client_check" parameterType="String" resultType="Integer">
+ 		SELECT count(*)
+  		FROM client
+  		where name in #{keyword}
+ 	</select>
+ 	
+ 	<!-- 계좌번호 중복확인 -->
+	<select id="bank_check" parameterType="String" resultType="Integer">
+ 		SELECT count(*)
+  		FROM ACCOUNT
+  		where ACCOUNT_NUMBER in #{keyword}
+ 	</select>
+ 	
+ 	    <select id="request_list" parameterType="String" resultMap="request_listMap"> 
+   SELECT r.REQUEST_ID,
+         p.PRODUCT_ID,
+         p.NAME,
+         p.CATEGORY,
+         p.PRICE,
+         rd.QTY,
+          r.BEGIN_DATE
+     FROM REQUEST r
+     JOIN CLIENT c
+       on r.client_id = c.client_id
+     JOIN REQUEST_DETAIL rd
+       on rd.request_id = r.request_id    
+     JOIN PRODUCT p
+       on p.product_id = rd.product_id
+    WHERE r.TYPE = '주문서'
+      AND c.client_id = #{client_id}
+    ORDER BY REQUEST_ID DESC
+    </select>
+    
+      <resultMap id="request_listMap" type="com.spring.team_one.dto.AssembleDTO">
+      <result property="request_id" column="REQUEST_ID" />
+      <result property="product_id" column="PRODUCT_ID" />
+        <result property="pr_name" column="NAME" />
+        <result property="category" column="CATEGORY" />
+        <result property="price" column="PRICE" />      
+        <result property="re_qty" column="QTY" />
+        <result property="begin_date" column="BEGIN_DATE" />       
+    </resultMap>
+ 	
+ 	 
+</mapper>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        
+<mapper namespace="com.spring.team_one.dao.OneDao">
+	<!-- 시큐리티 - UserAuthenticationService에서 호출 (아이디 여부확인) -->
+	<select id="selectCustomer" parameterType="String" resultType="com.spring.team_one.dto.OneDto">
+		SELECT *
+		FROM employee
+		WHERE #{employee_id} IN employee_id	
+	</select>
+	
+	<!-- 시큐리티 - UserLoginSuccessHandler에서 호출 -->
+    <select id="authorityCheck" resultType="String">
+       SELECT authority FROM employee WHERE employee_id=#{employee_id}
+    </select>
+    
+    <!-- 시큐리티 - UserLoginFailureHandler에서 호출 => PW여부확인 -->
+    <select id="pwdCheck" parameterType="String" resultType="String">
+	    SELECT password 
+	    FROM employee 
+	    WHERE employee_id=#{strId}
+    </select>
+    
+    <!-- 시큐리티 - UserLoginFailureHandler에서 호출 => ID여부확인 -->
+    <select id="idCheck" parameterType="String" resultType="Integer">
+	  	SELECT COUNT(*) 
+	  	FROM employee
+	  	WHERE employee_id IN #{inputId}
+    </select>
+    
+    <insert id="addAccount" parameterType="com.spring.team_one.dto.OneDto">
+    	INSERT INTO employee(EMPLOYEE_ID,NAME,PHOTO,REGISTER_NUMBER,PHONE,EMAIL,
+    	HIRE_DATE,ADDRESS,DETAIL_ADDRESS,ZIP_CODE,PASSWORD,SALARY,authority,POSITION_ID,DEPARTMENT_ID)
+    	VALUES (#{employee_id}, #{name}, #{photo}, #{register_number}, #{phone}, #{email}
+    	,#{hire_date}, #{address}, #{detail_address},#{zip_code}, #{password}, #{salary},#{authority}
+    	,#{position_id}, #{department_id})
+    </insert>
+</mapper>
